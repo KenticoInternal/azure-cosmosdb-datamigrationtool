@@ -76,6 +76,18 @@
         {
             var item = GetITableEntityFromIDataItem(dataItem);
 
+            var entity = (DynamicTableEntity) item;
+
+            var properties = new Dictionary<string, EntityProperty>(entity.Properties);
+            foreach (var property in properties)
+            {
+                if (property.Key == "Id")
+                {
+                    entity.Properties.Remove("Id");
+                    entity.Properties[GetIdPropertyName(entity.RowKey)] = property.Value;
+                }
+            }
+
             inputSizeTracker.Add(item);
 
             if (!dict.ContainsKey(item.PartitionKey))
@@ -132,13 +144,30 @@
                             {
                                 op.Add(subOperation.ElementAt(i));
                             }
-
                             try
                             {
                                 await Utils.ExecuteWithRetryAsync(
-                                                    () => cloudtable.ExecuteBatchAsync(batch: op, 
-                                                    requestOptions: requestOptions, operationContext: null, cancellationToken: cancellation)
-                                                );
+                                    async () =>
+                                    {
+                                        var first = op.First().Entity.RowKey;
+                                        var last = op.Last().Entity.RowKey;
+
+                                        var existingEntities = await cloudtable.GetRange(kv.Key, first, last);
+
+                                        foreach (var entity in existingEntities)
+                                        {
+                                            var operation = op.FirstOrDefault(o => o.Entity.RowKey == entity.RowKey);
+                                            if (operation != null)
+                                            {
+                                                op.Remove(operation);
+                                            }
+                                        }
+
+                                        if (op.Any())
+                                        {
+                                            await cloudtable.ExecuteBatchAsync(batch: op, requestOptions: requestOptions, operationContext: null, cancellationToken: cancellation);
+                                        }
+                                    });
                             }
                             catch (Exception ex)
                             {
@@ -185,6 +214,51 @@
             sourceData.Properties.Remove("Timestamp");
 
             return sourceData;
+        }
+
+        private static string GetIdPropertyName(string rowKey)
+        {
+            if (rowKey.StartsWith(RowPrefixes.Comments))
+            {
+                return EntityIds.CommentThreadId;
+            }
+
+            if (rowKey.StartsWith(RowPrefixes.Taxonomy))
+            {
+                return EntityIds.TaxonomyId;
+            }
+
+            if (rowKey.StartsWith(RowPrefixes.Timeline))
+            {
+                return EntityIds.TimelineItemId;
+            }
+
+            throw new ArgumentException($"Entity with rowkey {rowKey} doesn't have entity ID");
+        }
+
+        private static class RowPrefixes
+        {
+            public const string Timeline = "TLN;";
+            public const string ContentItemPersonalMetadata = "CIPM;";
+            public const string Workflow = "W;";
+            public const string Type = "CT;";
+            public const string Taxonomy = "T;";
+            public const string ItemRevision = "IR;";
+            public const string PreviewUrlPattern = "PUP;";
+            public const string Asset = "A;";
+            public const string FileReference = "FR;";
+            public const string ProjectSettings = "PS;";
+            public const string Comments = "CMT;";
+            public const string UserUIPreferences = "UP;";
+            public const string RoleSettings = "RS;";
+            public const string LongRunningTask = "LRT;";
+        }
+
+        private static class EntityIds
+        {
+            public const string CommentThreadId = "CommentThreadId";
+            public const string TaxonomyId = "TaxonomyId";
+            public const string TimelineItemId = "TimelineItemId";
         }
     }
 }
