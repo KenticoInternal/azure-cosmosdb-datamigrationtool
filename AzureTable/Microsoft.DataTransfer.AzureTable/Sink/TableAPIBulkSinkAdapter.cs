@@ -78,6 +78,17 @@
 
             var entity = (DynamicTableEntity) item;
 
+            // Remove Asset Folder and Webhook entities (deprecated)
+            if (entity.RowKey.StartsWith("AF;") || entity.RowKey.StartsWith("WH;"))
+            {
+                return;
+            }
+
+            if (string.IsNullOrEmpty(entity.RowKey))
+            {
+                entity.RowKey = entity.PartitionKey;
+            }
+
             var properties = new Dictionary<string, EntityProperty>(entity.Properties);
             foreach (var property in properties)
             {
