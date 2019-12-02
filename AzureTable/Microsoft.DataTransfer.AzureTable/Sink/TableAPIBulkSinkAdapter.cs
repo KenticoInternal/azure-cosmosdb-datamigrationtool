@@ -33,6 +33,9 @@
         private BatchSizeTracker batchSizeTracker;
         private readonly TableRequestOptions requestOptions;
 
+        private List<string> ObsoleteEntities = new List<string>
+            {"ER;", "TL;", "E;", "C;", "WH;", "AF;"};
+
         public int MaxDegreeOfParallelism
         {
             get { return 1; }
@@ -78,8 +81,7 @@
 
             var entity = (DynamicTableEntity) item;
 
-            // Remove Asset Folder and Webhook entities (deprecated)
-            if (entity.RowKey.StartsWith("AF;") || entity.RowKey.StartsWith("WH;"))
+            if (ObsoleteEntities.Contains(entity.RowKey))
             {
                 return;
             }
@@ -95,7 +97,7 @@
                 if (property.Key == "Id")
                 {
                     entity.Properties.Remove("Id");
-                    entity.Properties[GetIdPropertyName(entity.RowKey)] = property.Value;
+                    entity.Properties[GetIdPropertyName(entity)] = property.Value;
                 }
             }
 
@@ -227,24 +229,24 @@
             return sourceData;
         }
 
-        private static string GetIdPropertyName(string rowKey)
+        private static string GetIdPropertyName(DynamicTableEntity entity)
         {
-            if (rowKey.StartsWith(RowPrefixes.Comments))
+            if (entity.RowKey.StartsWith(RowPrefixes.Comments))
             {
                 return EntityIds.CommentThreadId;
             }
 
-            if (rowKey.StartsWith(RowPrefixes.Taxonomy))
+            if (entity.RowKey.StartsWith(RowPrefixes.Taxonomy))
             {
                 return EntityIds.TaxonomyId;
             }
 
-            if (rowKey.StartsWith(RowPrefixes.Timeline))
+            if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
             {
                 return EntityIds.TimelineItemId;
             }
 
-            throw new ArgumentException($"Entity with rowkey {rowKey} doesn't have entity ID");
+            throw new ArgumentException($"Entity from partition {entity.PartitionKey} with rowkey {entity.RowKey} doesn't have entity ID");
         }
 
         private static class RowPrefixes

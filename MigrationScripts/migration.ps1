@@ -20,3 +20,12 @@ for ($i=$startIndex; $i -lt $endIndex; $i++) {
 	}"
 }
 
+if ($batchNumber -eq 1) {
+    Write-Host "Scheduled tasks";
+    .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:ScheduledTasks /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.Throughput:10000 /t.TableName:ScheduledTasks /ErrorLog:logs/scheduledTasks.txt /OverwriteErrorLog;
+
+    Write-Host "Long running tasks";
+    .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:LongRunningTasks /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.Throughput:400 /t.TableName:LongRunningTasks /ErrorLog:logs/longRunningTasks.txt /OverwriteErrorLog;
+}
+
+
