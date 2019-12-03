@@ -81,7 +81,7 @@
 
             var entity = (DynamicTableEntity) item;
 
-            if (ObsoleteEntities.Contains(entity.RowKey))
+            if (ObsoleteEntities.Any(obsoleteEntity => entity.RowKey.StartsWith(obsoleteEntity)))
             {
                 return;
             }
@@ -178,9 +178,10 @@
 
                                         if (op.Any())
                                         {
-                                            await cloudtable.ExecuteBatchAsync(batch: op, requestOptions: requestOptions, operationContext: null, cancellationToken: cancellation);
+                                            await Utils.ExecuteWithRetryAsync( 
+                                                async () => await cloudtable.ExecuteBatchAsync(batch: op, requestOptions: requestOptions, operationContext: null, cancellationToken: cancellation));
                                         }
-                                    });
+                                    }, retries: 10);
                             }
                             catch (Exception ex)
                             {

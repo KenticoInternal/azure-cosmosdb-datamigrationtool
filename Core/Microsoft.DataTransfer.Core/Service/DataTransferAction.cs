@@ -81,6 +81,7 @@ namespace Microsoft.DataTransfer.Core.Service
             }
             catch (AggregateException aggregateException)
             {
+                statistics.AddError(dataItemId, aggregateException);
                 foreach (var exception in aggregateException.Flatten().InnerExceptions)
                     statistics.AddError(dataItemId, exception);
             }
