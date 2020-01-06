@@ -16,16 +16,16 @@ $endIndex = [math]::min(($startIndex + $batchSize), $filters.Length);
 for ($i=$startIndex; $i -lt $endIndex; $i++) {
 	invoke-expression "cmd /c start powershell -NoExit -Command {
         Write-Host ""$($filters[$i])"";
-        .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:DataTable /s.Filter:""$($filters[$i])"" /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.Throughput:10000 /t.TableName:ProjectData /ErrorLog:logs/""$($filters[$i])"".txt /OverwriteErrorLog;
+        .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:DataTable /s.Filter:""$($filters[$i])"" /t:TableAPIBulk /t.MaxBatchSize:572864 /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.TableName:ProjectData /ErrorLog:logs/""$($filters[$i])"".txt /OverwriteErrorLog;
 	}"
 }
 
 if ($batchNumber -eq 1) {
     Write-Host "Scheduled tasks";
-    .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:ScheduledTasks /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.Throughput:10000 /t.TableName:ScheduledTasks /ErrorLog:logs/scheduledTasks.txt /OverwriteErrorLog;
+    .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:ScheduledTasks /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.TableName:ScheduledTasks /ErrorLog:logs/scheduledTasks.txt /OverwriteErrorLog;
 
     Write-Host "Long running tasks";
-    .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:LongRunningTasks /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.Throughput:400 /t.TableName:LongRunningTasks /ErrorLog:logs/longRunningTasks.txt /OverwriteErrorLog;
+    .\dt.exe /s:AzureTable /s.ConnectionString:""$($azureTableConnectionString)"" /s.Table:LongRunningTasks /t:TableAPIBulk /t.ConnectionString:""$($cosmosDbAccountConnectionString)"" /t.TableName:LongRunningTasks /ErrorLog:logs/longRunningTasks.txt /OverwriteErrorLog;
 }
 
 
