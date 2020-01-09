@@ -36,6 +36,8 @@
         private List<string> ObsoleteEntities = new List<string>
             {"ER;", "TL;", "E;", "C;", "WH;", "AF;"};
 
+        private const string TimelineItemPrefix = "TLN";
+
         public int MaxDegreeOfParallelism
         {
             get { return 1; }
@@ -89,6 +91,15 @@
             if (string.IsNullOrEmpty(entity.RowKey))
             {
                 entity.RowKey = entity.PartitionKey;
+            }
+
+            if (entity.RowKey.StartsWith(TimelineItemPrefix))
+            {
+                var rowKeyParts = entity.RowKey.Split(';');
+                var rowKeyPrefix = $"{rowKeyParts[0]};{rowKeyParts[1]};{rowKeyParts[2]}";
+
+                entity.PartitionKey += $";{rowKeyPrefix}";
+                entity.RowKey = rowKeyParts[3];
             }
 
             var properties = new Dictionary<string, EntityProperty>(entity.Properties);
