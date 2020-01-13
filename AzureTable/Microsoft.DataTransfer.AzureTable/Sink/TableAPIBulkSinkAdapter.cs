@@ -36,12 +36,7 @@
         private List<string> ObsoleteEntities = new List<string>
             {"ER;", "TL;", "E;", "C;", "WH;", "AF;"};
 
-        private const string TimelineItemPrefix = "TLN";
-
-        public int MaxDegreeOfParallelism
-        {
-            get { return 1; }
-        }
+        public int MaxDegreeOfParallelism => 1;
 
         public TableAPIBulkSinkAdapter(string connectionString, string tableName, 
             bool overwrite, long maxInputBufferSizeInBytes, int throughput, int batchSize)
@@ -93,7 +88,7 @@
                 entity.RowKey = entity.PartitionKey;
             }
 
-            if (entity.RowKey.StartsWith(TimelineItemPrefix))
+            if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
             {
                 var rowKeyParts = entity.RowKey.Split(';');
                 var rowKeyPrefix = $"{rowKeyParts[0]};{rowKeyParts[1]};{rowKeyParts[2]}";
