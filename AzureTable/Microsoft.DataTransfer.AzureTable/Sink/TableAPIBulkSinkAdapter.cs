@@ -91,10 +91,10 @@
             if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
             {
                 var rowKeyParts = entity.RowKey.Split(';');
-                var rowKeyPrefix = $"{rowKeyParts[0]};{rowKeyParts[1]};{rowKeyParts[2]}";
+                var rowKeyPrefix = $"{RowPrefixes.Timeline}{rowKeyParts[1]};{rowKeyParts[2]}";
 
                 entity.PartitionKey += $";{rowKeyPrefix}";
-                entity.RowKey = rowKeyParts[3];
+                entity.RowKey = $"{RowPrefixes.Timeline}{rowKeyParts[3]}";
             }
 
             var properties = new Dictionary<string, EntityProperty>(entity.Properties);
