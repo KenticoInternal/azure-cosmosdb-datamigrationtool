@@ -88,14 +88,7 @@
                 entity.RowKey = entity.PartitionKey;
             }
 
-            if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
-            {
-                var rowKeyParts = entity.RowKey.Split(';');
-                var rowKeyPrefix = $"{RowPrefixes.Timeline}{rowKeyParts[1]};{rowKeyParts[2]}";
-
-                entity.PartitionKey += $";{rowKeyPrefix}";
-                entity.RowKey = $"{RowPrefixes.Timeline}{rowKeyParts[3]}";
-            }
+            SplitPartitionForTimelineAndItemRevision(entity);
 
             var properties = new Dictionary<string, EntityProperty>(entity.Properties);
             foreach (var property in properties)
@@ -140,6 +133,28 @@
 
         public void Dispose()
         {
+        }
+        
+        private static void SplitPartitionForTimelineAndItemRevision(ITableEntity entity)
+        {
+            if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
+            {
+                var rowKeyParts = entity.RowKey.Split(';');
+
+                entity.PartitionKey += $";{rowKeyParts[1]};{rowKeyParts[2]}";
+                entity.RowKey = $"{RowPrefixes.Timeline}{rowKeyParts[3]}";
+            }
+
+            if (entity.RowKey.StartsWith(RowPrefixes.ItemRevision))
+            {
+                var rowKeyParts = entity.RowKey.Split(';');
+
+                var variantId = rowKeyParts.Length == 4 ? rowKeyParts[2] : Guid.Empty.ToString();
+                var revisionId = rowKeyParts.Length == 4 ? rowKeyParts[3] : rowKeyParts[2];
+
+                entity.PartitionKey += $";{rowKeyParts[1]};{variantId}";
+                entity.RowKey = $"{RowPrefixes.ItemRevision}{revisionId}";
+            }
         }
 
         // Flush out all data to the Cosmos DB Table sink.
