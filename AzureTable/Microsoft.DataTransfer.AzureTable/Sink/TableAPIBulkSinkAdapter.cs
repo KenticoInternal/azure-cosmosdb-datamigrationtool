@@ -36,15 +36,15 @@
         private List<string> ObsoleteEntities = new List<string>
             {"ER;", "TL;", "E;", "C;", "WH;", "AF;"};
         
-        private const string RevisionIdName = "RevisionId"; 
-        private const string ContentItemIdName = "ContentItemId";
-        private const string VariantIdName = "VariantId";
+        private const string RevisionIdPropertyName = "RevisionId"; 
+        private const string ContentItemIdPropertyName = "ContentItemId";
+        private const string VariantIdPropertyName = "VariantId";
 
         private static IEnumerable<string> PropertiesMissingInOldEntities { get; } = new []
         {
-            RevisionIdName, 
-            ContentItemIdName, 
-            VariantIdName
+            RevisionIdPropertyName, 
+            ContentItemIdPropertyName, 
+            VariantIdPropertyName
         };
 
         public int MaxDegreeOfParallelism => 1;
@@ -166,17 +166,18 @@
         {
             var rowKeyParts = entity.RowKey.Split(';');
 
+            var itemId = rowKeyParts[1];
             var variantId = rowKeyParts.Length == 4 ? rowKeyParts[2] : Guid.Empty.ToString();
             var revisionId = rowKeyParts.Length == 4 ? rowKeyParts[3] : rowKeyParts[2];
 
-            entity.PartitionKey += $";{rowKeyParts[1]};{variantId}";
+            entity.PartitionKey += $";{itemId};{variantId}";
             entity.RowKey = $"{RowPrefixes.ItemRevision}{revisionId}";
             
             if (!PropertiesMissingInOldEntities.All(properties.ContainsKey))
             {
-                entity.Properties[RevisionIdName] = new EntityProperty(revisionId);
-                entity.Properties[ContentItemIdName] = new EntityProperty(rowKeyParts[1]);
-                entity.Properties[VariantIdName] = new EntityProperty(variantId);
+                entity.Properties[RevisionIdPropertyName] = new EntityProperty(revisionId);
+                entity.Properties[ContentItemIdPropertyName] = new EntityProperty(itemId);
+                entity.Properties[VariantIdPropertyName] = new EntityProperty(variantId);
             }
         }
 
