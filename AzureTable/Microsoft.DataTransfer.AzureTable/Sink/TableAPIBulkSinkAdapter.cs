@@ -35,6 +35,17 @@
 
         private List<string> ObsoleteEntities = new List<string>
             {"ER;", "TL;", "E;", "C;", "WH;", "AF;"};
+        
+        private const string RevisionIdName = "RevisionId"; 
+        private const string ContentItemIdName = "ContentItemId";
+        private const string VariantIdName = "VariantId";
+
+        private static IEnumerable<string> PropertiesMissingInOldEntities { get; } = new []
+        {
+            RevisionIdName, 
+            ContentItemIdName, 
+            VariantIdName
+        };
 
         public int MaxDegreeOfParallelism => 1;
 
@@ -88,8 +99,6 @@
                 entity.RowKey = entity.PartitionKey;
             }
 
-            SplitPartitionForTimelineAndItemRevision(entity);
-
             var properties = new Dictionary<string, EntityProperty>(entity.Properties);
             foreach (var property in properties)
             {
@@ -98,6 +107,16 @@
                     entity.Properties.Remove("Id");
                     entity.Properties[GetIdPropertyName(entity)] = property.Value;
                 }
+            }
+            
+            if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
+            {
+                SplitPartitionForTimeline(entity);
+            }
+
+            if (entity.RowKey.StartsWith(RowPrefixes.ItemRevision))
+            {
+                SplitPartitionForItemRevision(entity, properties);
             }
 
             inputSizeTracker.Add(item);
@@ -134,26 +153,30 @@
         public void Dispose()
         {
         }
-        
-        private static void SplitPartitionForTimelineAndItemRevision(ITableEntity entity)
+
+        private static void SplitPartitionForTimeline(DynamicTableEntity entity)
         {
-            if (entity.RowKey.StartsWith(RowPrefixes.Timeline))
+            var rowKeyParts = entity.RowKey.Split(';');
+
+            entity.PartitionKey += $";{rowKeyParts[1]};{rowKeyParts[2]}";
+            entity.RowKey = $"{RowPrefixes.Timeline}{rowKeyParts[3]}";
+        }
+        
+        private static void SplitPartitionForItemRevision(DynamicTableEntity entity, Dictionary<string, EntityProperty> properties)
+        {
+            var rowKeyParts = entity.RowKey.Split(';');
+
+            var variantId = rowKeyParts.Length == 4 ? rowKeyParts[2] : Guid.Empty.ToString();
+            var revisionId = rowKeyParts.Length == 4 ? rowKeyParts[3] : rowKeyParts[2];
+
+            entity.PartitionKey += $";{rowKeyParts[1]};{variantId}";
+            entity.RowKey = $"{RowPrefixes.ItemRevision}{revisionId}";
+            
+            if (!PropertiesMissingInOldEntities.All(properties.ContainsKey))
             {
-                var rowKeyParts = entity.RowKey.Split(';');
-
-                entity.PartitionKey += $";{rowKeyParts[1]};{rowKeyParts[2]}";
-                entity.RowKey = $"{RowPrefixes.Timeline}{rowKeyParts[3]}";
-            }
-
-            if (entity.RowKey.StartsWith(RowPrefixes.ItemRevision))
-            {
-                var rowKeyParts = entity.RowKey.Split(';');
-
-                var variantId = rowKeyParts.Length == 4 ? rowKeyParts[2] : Guid.Empty.ToString();
-                var revisionId = rowKeyParts.Length == 4 ? rowKeyParts[3] : rowKeyParts[2];
-
-                entity.PartitionKey += $";{rowKeyParts[1]};{variantId}";
-                entity.RowKey = $"{RowPrefixes.ItemRevision}{revisionId}";
+                entity.Properties[RevisionIdName] = new EntityProperty(revisionId);
+                entity.Properties[ContentItemIdName] = new EntityProperty(rowKeyParts[1]);
+                entity.Properties[VariantIdName] = new EntityProperty(variantId);
             }
         }
 
