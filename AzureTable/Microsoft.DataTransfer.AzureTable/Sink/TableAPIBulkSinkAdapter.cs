@@ -166,9 +166,9 @@
         {
             var rowKeyParts = entity.RowKey.Split(';');
 
-            var itemId = rowKeyParts[1];
-            var variantId = rowKeyParts.Length == 4 ? rowKeyParts[2] : Guid.Empty.ToString();
-            var revisionId = rowKeyParts.Length == 4 ? rowKeyParts[3] : rowKeyParts[2];
+            var itemId =  Guid.Parse(rowKeyParts[1]);
+            var variantId = rowKeyParts.Length == 4 ? Guid.Parse(rowKeyParts[2]) : Guid.Empty;
+            var revisionId = rowKeyParts.Length == 4 ?  Guid.Parse(rowKeyParts[3]) :  Guid.Parse(rowKeyParts[2]);
 
             entity.PartitionKey += $";{itemId};{variantId}";
             entity.RowKey = $"{RowPrefixes.ItemRevision}{revisionId}";
